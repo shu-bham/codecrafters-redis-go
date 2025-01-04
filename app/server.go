@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 )
 
 const PORT = "6379"
@@ -19,6 +20,7 @@ func main() {
 	defer l.Close()
 	fmt.Printf("Server is listening on port %s\n", PORT)
 
+	var wg sync.WaitGroup
 	for {
 		conn, err := l.Accept()
 		fmt.Printf("Received a connection, address:%s\n", conn.RemoteAddr().String())
@@ -26,12 +28,19 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		go handleClient(conn)
+		wg.Add(1)
+		go handleClient(conn, &wg)
 	}
+
+	wg.Wait()
 }
 
-func handleClient(conn net.Conn) {
-	defer conn.Close()
+func handleClient(conn net.Conn, wg *sync.WaitGroup) {
+	defer func() {
+		fmt.Printf("Client Exit!\n")
+		wg.Done()
+		conn.Close()
+	}()
 	b := make([]byte, 1024)
 	_, err := conn.Read(b)
 	if err != nil {
@@ -44,5 +53,4 @@ func handleClient(conn net.Conn) {
 		fmt.Println("Error writing connection: ", err.Error())
 		os.Exit(1)
 	}
-	fmt.Printf("Client Exit!\n")
 }
