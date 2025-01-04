@@ -19,12 +19,16 @@ func main() {
 	defer l.Close()
 	fmt.Printf("Server is listening on port %s\n", PORT)
 
+	conn, err := l.Accept()
 	for {
-		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		conn.Write([]byte("+PONG\r\n"))
+		handleClient(conn)
 	}
+}
+
+func handleClient(conn net.Conn) {
+	conn.Write([]byte("+PONG\r\n"))
 }
