@@ -30,13 +30,14 @@ func main() {
 }
 
 func handleClient(conn net.Conn) {
-	b := make([]byte, 128)
+	defer conn.Close()
+	b := make([]byte, 1024)
 	_, err := conn.Read(b)
 	if err != nil {
 		fmt.Println("Error reading connection: ", err.Error())
 		os.Exit(1)
 	}
-	fmt.Println("Message received: ", b)
+	fmt.Printf("Connection data, address:%s, message:%s", conn.RemoteAddr().String(), string(b))
 	_, err = conn.Write([]byte("+PONG\r\n"))
 	if err != nil {
 		fmt.Println("Error writing connection: ", err.Error())
