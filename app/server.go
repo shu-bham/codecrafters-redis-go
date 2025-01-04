@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const PORT = "6379"
+const PORT = "8080"
 
 func main() {
 	fmt.Println("Starting Listener!")
@@ -19,17 +19,18 @@ func main() {
 	defer l.Close()
 	fmt.Printf("Server is listening on port %s\n", PORT)
 
-	conn, err := l.Accept()
 	for {
+		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		handleClient(conn)
+		go handleClient(conn)
 	}
 }
 
 func handleClient(conn net.Conn) {
+	defer conn.Close()
 	b := make([]byte, 128)
 	_, err := conn.Read(b)
 	if err != nil {
