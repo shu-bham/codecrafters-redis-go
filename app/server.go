@@ -21,6 +21,7 @@ func main() {
 
 	for {
 		conn, err := l.Accept()
+		fmt.Printf("Received a connection, address:%s\n", conn.RemoteAddr().String())
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
@@ -37,10 +38,11 @@ func handleClient(conn net.Conn) {
 		fmt.Println("Error reading connection: ", err.Error())
 		os.Exit(1)
 	}
-	fmt.Printf("Connection data, address:%s, message:%s", conn.RemoteAddr().String(), string(b))
+	fmt.Printf("Connection data, address:%s, message:%s\n", conn.RemoteAddr().String(), string(b))
 	_, err = conn.Write([]byte("+PONG\r\n"))
 	if err != nil {
 		fmt.Println("Error writing connection: ", err.Error())
 		os.Exit(1)
 	}
+	fmt.Printf("Client Exit!\n")
 }
