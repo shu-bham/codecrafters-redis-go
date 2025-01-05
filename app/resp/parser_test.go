@@ -110,4 +110,39 @@ func TestRESP(t *testing.T) {
 	expectBad(t, "*3\r\n:hello\r")
 	expectGood(t, "*3\r\n:1\r\n:2\r\n:3\r\n",
 		RESP{Type: Array, Count: 3, Data: []byte(":1\r\n:2\r\n:3\r\n")})
+	expectGood(t, "*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n",
+		RESP{Type: Array, Count: 2, Data: []byte("$4\r\nECHO\r\n$3\r\nhey\r\n")})
+}
+
+func TestAppendBulkFloat(t *testing.T) {
+	var b []byte
+	b = AppendString(b, "HELLO")
+	b = AppendBulkFloat(b, 9.123192839)
+	b = AppendString(b, "HELLO")
+	exp := "+HELLO\r\n$11\r\n9.123192839\r\n+HELLO\r\n"
+	if string(b) != exp {
+		t.Fatalf("expected '%s', got '%s'", exp, b)
+	}
+}
+
+func TestAppendBulkInt(t *testing.T) {
+	var b []byte
+	b = AppendString(b, "HELLO")
+	b = AppendBulkInt(b, -9182739137)
+	b = AppendString(b, "HELLO")
+	exp := "+HELLO\r\n$11\r\n-9182739137\r\n+HELLO\r\n"
+	if string(b) != exp {
+		t.Fatalf("expected '%s', got '%s'", exp, b)
+	}
+}
+
+func TestAppendBulkUint(t *testing.T) {
+	var b []byte
+	b = AppendString(b, "HELLO")
+	b = AppendBulkInt(b, 91827391370)
+	b = AppendString(b, "HELLO")
+	exp := "+HELLO\r\n$11\r\n91827391370\r\n+HELLO\r\n"
+	if string(b) != exp {
+		t.Fatalf("expected '%s', got '%s'", exp, b)
+	}
 }
