@@ -1,56 +1,57 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"os"
-	"sync"
 )
 
 const PORT = "6379"
 
 func main() {
-	fmt.Println("Starting Listener!")
-
-	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", PORT))
+	l, err := net.Listen("tcp", "0.0.0.0:"+PORT)
 	if err != nil {
-		fmt.Printf("Failed to bind to port %s\n", PORT)
+		log.Printf("Failed to bind to port %s: %v\n", PORT, err)
 		os.Exit(1)
 	}
 	defer l.Close()
-	fmt.Printf("Server is listening on port %s\n", PORT)
+	log.Printf("Server is listening on port %s\n", PORT)
 
-	var wg sync.WaitGroup
 	for {
 		conn, err := l.Accept()
-		fmt.Printf("Received a connection, address:%s\n", conn.RemoteAddr().String())
 		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
+			log.Printf("Error accepting connection: %v\n", err)
+			continue
 		}
-		wg.Add(1)
-		go handleClient(conn, &wg)
+		log.Printf("Received a connection, address: %s\n", conn.RemoteAddr().String())
+		go handleConnection(conn)
 	}
-
-	wg.Wait()
 }
 
-func handleClient(conn net.Conn, wg *sync.WaitGroup) {
-	defer func() {
-		fmt.Printf("Client Exit!\n")
-		wg.Done()
-		conn.Close()
-	}()
-	b := make([]byte, 1024)
-	_, err := conn.Read(b)
-	if err != nil {
-		fmt.Println("Error reading connection: ", err.Error())
-		os.Exit(1)
-	}
-	fmt.Printf("Connection data, address:%s, message:%s\n", conn.RemoteAddr().String(), string(b))
-	_, err = conn.Write([]byte("+PONG\r\n"))
-	if err != nil {
-		fmt.Println("Error writing connection: ", err.Error())
-		os.Exit(1)
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	buf := make([]byte, 1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err.Error() != "EOF" {
+				log.Printf("Error reading connection: %v\n", err)
+			}
+			return
+		}
+
+		if n == 0 {
+			continue
+		}
+
+		log.Printf("Connection data, address: %s, message: %s\n",
+			conn.RemoteAddr().String(), string(buf[:n]))
+
+		_, err = conn.Write([]byte("+PONG\r\n"))
+		if err != nil {
+			log.Printf("Error writing connection: %v\n", err)
+			return
+		}
 	}
 }
