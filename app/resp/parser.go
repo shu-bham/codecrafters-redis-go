@@ -49,8 +49,6 @@ func Parse(b []byte) (n int, resp RESP) {
 	resp.Data = b[1 : i-2]
 
 	if resp.Type == Integer {
-		// :2\r\n
-		// :-50\r\n
 		if len(resp.Data) == 0 {
 			return 0, RESP{} // invalid integer
 		}
@@ -68,6 +66,10 @@ func Parse(b []byte) (n int, resp RESP) {
 			}
 		}
 
+		return len(resp.Raw), resp
+	}
+
+	if resp.Type == String || resp.Type == Error {
 		return len(resp.Raw), resp
 	}
 
