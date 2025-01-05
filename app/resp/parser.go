@@ -1,5 +1,7 @@
 package resp
 
+import "strconv"
+
 const (
 	Integer = ':'
 	String  = '+'
@@ -70,6 +72,33 @@ func Parse(b []byte) (n int, resp RESP) {
 	}
 
 	if resp.Type == String || resp.Type == Error {
+		return len(resp.Raw), resp
+	}
+
+	var err error
+	resp.Count, err = strconv.Atoi(string(resp.Data))
+	if resp.Type == Bulk {
+		if err != nil {
+			return 0, RESP{} // invalid no of bytes
+		}
+
+		if resp.Count < 0 {
+			resp.Data = nil
+			resp.Count = 0
+			return len(resp.Raw), resp
+		}
+
+		if i+resp.Count+2 > len(b) {
+			return 0, RESP{} // not enough data
+		}
+
+		if b[i+resp.Count] != '\r' || b[i+resp.Count+1] != '\n' {
+			return 0, RESP{} // invalid end of line
+		}
+
+		resp.Data = b[i : i+resp.Count]
+		resp.Raw = b[0 : i+resp.Count+2]
+		resp.Count = 0
 		return len(resp.Raw), resp
 	}
 
