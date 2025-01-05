@@ -1,6 +1,8 @@
 package resp
 
-import "strconv"
+import (
+	"strconv"
+)
 
 const (
 	Integer = ':'
@@ -99,6 +101,26 @@ func Parse(b []byte) (n int, resp RESP) {
 		resp.Data = b[i : i+resp.Count]
 		resp.Raw = b[0 : i+resp.Count+2]
 		resp.Count = 0
+		return len(resp.Raw), resp
+	}
+
+	if resp.Type == Array {
+		if err != nil {
+			return 0, RESP{} // invalid number of elements
+		}
+
+		var tn int
+		sdata := b[i:]
+		for j := 0; j < (resp.Count); j++ {
+			rn, rresp := Parse(sdata)
+			if rresp.Type == 0 {
+				return 0, RESP{}
+			}
+			tn += rn
+			sdata = sdata[rn:]
+		}
+		resp.Data = b[i : i+tn]
+		resp.Raw = b[0 : i+tn]
 		return len(resp.Raw), resp
 	}
 
