@@ -135,7 +135,7 @@ func (r *RESP) ToStringArr() ([]string, error) {
 	}
 
 	data := r.Data
-	result := make([]string, r.Count)
+	result := make([]string, 0)
 	for i := 0; i < r.Count; i++ {
 		n, resp := Parse(data)
 		if resp.Type == 0 {
