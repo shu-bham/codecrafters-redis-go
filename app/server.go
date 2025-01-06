@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/codecrafters-io/redis-starter-go/app/cmd"
 	"log"
 	"net"
 	"os"
@@ -45,10 +46,11 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
+		bytes := buf[:n]
 		log.Printf("Connection data, address: %s, message: %s\n",
-			conn.RemoteAddr().String(), string(buf[:n]))
+			conn.RemoteAddr().String(), string(bytes))
 
-		_, err = conn.Write([]byte("+PONG\r\n"))
+		_, err = conn.Write(cmd.Handle(bytes))
 		if err != nil {
 			log.Printf("Error writing connection: %v\n", err)
 			return

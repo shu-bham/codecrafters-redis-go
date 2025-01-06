@@ -1,4 +1,4 @@
-package resp
+package parser
 
 import (
 	"fmt"
