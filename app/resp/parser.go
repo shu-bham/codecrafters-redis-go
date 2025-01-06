@@ -1,6 +1,7 @@
 package resp
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -126,6 +127,31 @@ func Parse(b []byte) (n int, resp RESP) {
 	}
 
 	return 0, RESP{}
+}
+
+func (r *RESP) ToStringArr() ([]string, error) {
+	if r.Type != Array {
+		return []string{}, fmt.Errorf("expected Array RESP, got %c", r.Type)
+	}
+
+	data := r.Data
+	result := make([]string, r.Count)
+	for i := 0; i < r.Count; i++ {
+		n, resp := Parse(data)
+		if resp.Type == 0 {
+			return nil, fmt.Errorf("failed to parse element %d", i)
+		}
+
+		switch resp.Type {
+		case String, Bulk:
+			result = append(result, string(resp.Data))
+		default:
+			return nil, fmt.Errorf("element %d is not a string type (got %c)", i, resp.Type)
+		}
+
+		data = data[n:]
+	}
+	return result, nil
 }
 
 // appendPrefix will append a "$3\r\n" style redis prefix for a message.

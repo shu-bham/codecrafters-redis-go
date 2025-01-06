@@ -2,6 +2,7 @@ package resp
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -144,5 +145,23 @@ func TestAppendBulkUint(t *testing.T) {
 	exp := "+HELLO\r\n$11\r\n91827391370\r\n+HELLO\r\n"
 	if string(b) != exp {
 		t.Fatalf("expected '%s', got '%s'", exp, b)
+	}
+}
+
+func Test_ToStringArr_1(t *testing.T) {
+	payload := "*3\r\n:1\r\n:2\r\n:3\r\n"
+	_, resp := Parse([]byte(payload))
+	arr, err := resp.ToStringArr()
+	if err != nil {
+		slices.Equal([]string{"1", "2", "3"}, arr)
+	}
+}
+
+func Test_ToStringArr_2(t *testing.T) {
+	payload := "*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n"
+	_, resp := Parse([]byte(payload))
+	arr, err := resp.ToStringArr()
+	if err != nil {
+		slices.Equal([]string{"ECHO", "hey"}, arr)
 	}
 }
