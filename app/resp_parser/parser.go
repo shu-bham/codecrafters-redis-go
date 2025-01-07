@@ -222,3 +222,8 @@ func AppendBulkFloat(dst []byte, f float64) []byte {
 func AppendBulkInt(dst []byte, x int64) []byte {
 	return AppendBulk(dst, strconv.AppendInt(nil, x, 10))
 }
+
+// AppendNull appends a Redis protocol null to the input bytes.
+func AppendNull(b []byte) []byte {
+	return append(b, '$', '-', '1', '\r', '\n')
+}

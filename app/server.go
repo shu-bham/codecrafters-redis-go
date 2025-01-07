@@ -10,6 +10,7 @@ import (
 const PORT = "6379"
 
 func main() {
+	app := &cmd.App{Store: make(map[string]string)}
 	l, err := net.Listen("tcp", "0.0.0.0:"+PORT)
 	if err != nil {
 		log.Printf("Failed to bind to port %s: %v\n", PORT, err)
@@ -25,11 +26,11 @@ func main() {
 			continue
 		}
 		log.Printf("Received a connection, address: %s\n", conn.RemoteAddr().String())
-		go handleConnection(conn)
+		go handleConnection(app, conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(app *cmd.App, conn net.Conn) {
 	defer conn.Close()
 
 	buf := make([]byte, 1024)
@@ -50,7 +51,7 @@ func handleConnection(conn net.Conn) {
 		log.Printf("Connection data, address: %s, message: %s\n",
 			conn.RemoteAddr().String(), string(bytes))
 
-		_, err = conn.Write(cmd.Handle(bytes))
+		_, err = conn.Write(app.Handle(bytes))
 		if err != nil {
 			log.Printf("Error writing connection: %v\n", err)
 			return

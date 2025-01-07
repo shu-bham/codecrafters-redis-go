@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+type App struct {
+	Store map[string]string
+}
+
 // CommandError represents an error that occurred while processing a command
 type CommandError struct {
 	Command string
@@ -18,7 +22,7 @@ func (e *CommandError) Error() string {
 }
 
 // Handle processes incoming Redis commands and returns the appropriate response
-func Handle(b []byte) []byte {
+func (app *App) Handle(b []byte) []byte {
 	var out []byte
 	n, resp := parser.Parse(b)
 	if n == 0 {
@@ -50,6 +54,20 @@ func Handle(b []byte) []byte {
 			return parser.AppendError(out, "ERR wrong number of arguments for 'echo' command")
 		}
 		return parser.AppendBulk(out, []byte(arr[1]))
+
+	case "SET":
+		app.Store[strings.ToLower(arr[1])] = arr[2]
+		log.Printf("DEBUG: SET key='%s', value='%s'", arr[1], arr[2])
+		return parser.AppendString(out, "OK")
+
+	case "GET":
+		s, ok := app.Store[strings.ToLower(arr[1])]
+		if !ok {
+			log.Printf("DEBUG: GET key='%s', Value not found", arr[1])
+			return parser.AppendNull(out)
+		}
+		log.Printf("DEBUG: GET key='%s', value='%s'", arr[1], s)
+		return parser.AppendBulk(out, []byte(s))
 
 	default:
 		log.Printf("WARN: Unknown command received: %s", command)
