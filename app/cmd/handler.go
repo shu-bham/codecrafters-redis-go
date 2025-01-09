@@ -1,76 +1,51 @@
 package cmd
 
 import (
+	"fmt"
 	parser "github.com/codecrafters-io/redis-starter-go/app/resp_parser"
 	"log"
-	"strings"
 )
 
-type App struct {
-	Store map[string]string
+type CommandHandler func(*App, *Command) []byte
+
+var commandHandlers = map[string]CommandHandler{
+	"PING": handlePing,
+	"ECHO": handleEcho,
+	"SET":  handleSet,
+	"GET":  handleGet,
 }
 
-// CommandError represents an error that occurred while processing a command
-type CommandError struct {
-	Command string
-	Err     error
+func handlePing(app *App, cmd *Command) []byte {
+	return parser.AppendString([]byte{}, "PONG")
 }
 
-func (e *CommandError) Error() string {
-	log.Printf("command '%s' failed: %v", e.Command, e.Err)
-	return e.Err.Error()
+func handleEcho(app *App, cmd *Command) []byte {
+	if len(cmd.Args) < 1 {
+		return cmd.Error(fmt.Errorf("wrong number of arguments for 'echo' command"))
+	}
+	return parser.AppendBulk([]byte{}, []byte(cmd.Args[0]))
 }
 
-// Handle processes incoming Redis commands and returns the appropriate response
-func (app *App) Handle(b []byte) []byte {
-	var out []byte
-	n, resp := parser.Parse(b)
-	if n == 0 {
-		log.Printf("ERROR: Failed to parse command: invalid format")
-		return parser.AppendError(out, "ERR invalid command format")
+func handleSet(app *App, cmd *Command) []byte {
+	if len(cmd.Args) < 2 {
+		return cmd.Error(fmt.Errorf("wrong number of arguments for 'set' command"))
+	}
+	app.store.Set(cmd.Args[0], cmd.Args[1])
+	log.Printf("DEBUG: SET key='%s', value='%s'", cmd.Args[0], cmd.Args[1])
+	return parser.AppendString([]byte{}, "OK")
+}
+
+func handleGet(app *App, cmd *Command) []byte {
+	if len(cmd.Args) < 1 {
+		return cmd.Error(fmt.Errorf("wrong number of arguments for 'get' command"))
 	}
 
-	arr, err := resp.ToStringArr()
-	if err != nil {
-		log.Printf("ERROR: Failed to convert command to string array: %v", err)
-		return parser.AppendError(out, "ERR invalid command format")
+	value, exists := app.store.Get(cmd.Args[0])
+	if !exists {
+		log.Printf("DEBUG: GET key='%s', Value not found", cmd.Args[0])
+		return parser.AppendNull([]byte{})
 	}
 
-	if len(arr) == 0 {
-		log.Printf("ERROR: Received empty command")
-		return parser.AppendError(out, "ERR empty command")
-	}
-
-	command := strings.ToUpper(arr[0])
-	log.Printf("INFO: Processing command: %s", command)
-
-	switch command {
-	case "PING":
-		return parser.AppendString(out, "PONG")
-
-	case "ECHO":
-		if len(arr) < 2 {
-			log.Printf("ERROR: ECHO command received without argument")
-			return parser.AppendError(out, "ERR wrong number of arguments for 'echo' command")
-		}
-		return parser.AppendBulk(out, []byte(arr[1]))
-
-	case "SET":
-		app.Store[strings.ToLower(arr[1])] = arr[2]
-		log.Printf("DEBUG: SET key='%s', value='%s'", arr[1], arr[2])
-		return parser.AppendString(out, "OK")
-
-	case "GET":
-		s, ok := app.Store[strings.ToLower(arr[1])]
-		if !ok {
-			log.Printf("DEBUG: GET key='%s', Value not found", arr[1])
-			return parser.AppendNull(out)
-		}
-		log.Printf("DEBUG: GET key='%s', value='%s'", arr[1], s)
-		return parser.AppendBulk(out, []byte(s))
-
-	default:
-		log.Printf("WARN: Unknown command received: %s", command)
-		return parser.AppendError(out, "ERR unknown command '"+command+"'")
-	}
+	log.Printf("DEBUG: GET key='%s', value='%s'", cmd.Args[0], value)
+	return parser.AppendBulk([]byte{}, []byte(value))
 }

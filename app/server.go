@@ -10,7 +10,7 @@ import (
 const PORT = "6379"
 
 func main() {
-	app := &cmd.App{Store: make(map[string]string)}
+	app := cmd.NewApp()
 	l, err := net.Listen("tcp", "0.0.0.0:"+PORT)
 	if err != nil {
 		log.Printf("Failed to bind to port %s: %v\n", PORT, err)
