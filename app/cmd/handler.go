@@ -4,6 +4,9 @@ import (
 	"fmt"
 	parser "github.com/codecrafters-io/redis-starter-go/app/resp_parser"
 	"log"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type CommandHandler func(*App, *Command) []byte
@@ -27,10 +30,23 @@ func handleEcho(app *App, cmd *Command) []byte {
 }
 
 func handleSet(app *App, cmd *Command) []byte {
-	if len(cmd.Args) < 2 {
+	if len(cmd.Args) != 2 && len(cmd.Args) != 4 {
 		return cmd.Error(fmt.Errorf("wrong number of arguments for 'set' command"))
 	}
-	app.store.Set(cmd.Args[0], cmd.Args[1])
+
+	if len(cmd.Args) == 4 {
+		if strings.EqualFold(cmd.Args[2], "px") {
+			// milliseconds
+			atoi, err := strconv.Atoi(cmd.Args[3])
+			if err != nil {
+				return cmd.Error(fmt.Errorf("invalid value provided as expiry for 'set' command"))
+			}
+			expireAt := time.Now().Add(time.Millisecond * time.Duration(atoi))
+			app.store.Set(cmd.Args[0], cmd.Args[1], &expireAt)
+			return parser.AppendString([]byte{}, "OK")
+		}
+	}
+	app.store.Set(cmd.Args[0], cmd.Args[1], nil)
 	log.Printf("DEBUG: SET key='%s', value='%s'", cmd.Args[0], cmd.Args[1])
 	return parser.AppendString([]byte{}, "OK")
 }
